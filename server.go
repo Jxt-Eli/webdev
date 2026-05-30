@@ -13,19 +13,18 @@ import (
 )
 
 // INFO: public struct
-type User struct{
-	ID        string      `json:"id"`
-	Username  string      `json:"username"`
-	Email     string      `json:"email"`
-	CreatedAt time.Time   `json:"created_at"`
+type User struct {
+	ID        string    `json:"id"`
+	Username  string    `json:"username"`
+	Email     string    `json:"email"`
+	CreatedAt time.Time `json:"created_at"`
 
-	Password	string `json:"-"`
+	Password string `json:"-"`
 }
 
-type Server struct{
+type Server struct {
 	DB *sql.DB
 }
-
 
 func main() {
 	database := db.Connect()
@@ -33,20 +32,17 @@ func main() {
 	fmt.Println("postgres database connection successful")
 
 	r := mux.NewRouter()
-	r.Use(middleware) // Attaches middleware to router to prevent boilerplate of wrapping each handler function in the middleware function 
+	r.Use(middleware) // Attaches middleware to router to prevent boilerplate of wrapping each handler function in the middleware function
 
 	srv := &Server{
 		DB: database,
 	}
 
-
-	
 	r.HandleFunc("/", handler).Methods("GET")
 	r.HandleFunc("/users", srv.createUserHandler).Methods("POST")
 	r.HandleFunc("/{email}", srv.showUsers).Methods("GET")
 	r.HandleFunc("/{email}", srv.delUserHandler).Methods("DELETE")
 	r.HandleFunc("/users/{user_id}/repos/{repo}", userHandler).Methods("GET")
-
 
 	port := ":8080"
 	fmt.Printf("server running on port:%s\n", port)
@@ -63,4 +59,3 @@ func userHandler(w http.ResponseWriter, r *http.Request) {
 	repo := info["repo"]
 	fmt.Fprintf(w, "your user id is: %s and you requested the repo titled: %s\n", user_id, repo)
 }
-
