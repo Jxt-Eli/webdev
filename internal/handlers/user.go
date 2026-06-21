@@ -1,24 +1,37 @@
-package main
+package handlers
 
 import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
+	"database/sql"
 	"github.com/gorilla/mux"
-	// "github.com/pelletier/go-toml/query"
-	// "github.com/gorilla/mux"
+	"golang.org/x/crypto/bcrypt"
+	// "github.com/Jxt-Eli/webdev/cmd/api"
 )
 
-var arr = make([]User, 0)
+// INFO: public struct
+type User struct {
+	ID        string    `json:"id"`
+	Username  string    `json:"username"`
+	Email     string    `json:"email"`
+	CreatedAt time.Time `json:"created_at"`
 
-func (srv *Server) delUserHandler(w http.ResponseWriter, r *http.Request) {
+	Password string `json:"-"`
+}
+type Server struct {
+	DB *sql.DB
+}
+
+func (srv *Server) DelUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	info := mux.Vars(r)
 	email := info["email"]
 
-	query := 
-	`
+	query :=
+		`
 		DELETE FROM users
 		WHERE  email = $1
 	`
@@ -30,25 +43,36 @@ func (srv *Server) delUserHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Account deleted successfully!")
 }
 
-func (svr *Server) createUserHandler(w http.ResponseWriter, r *http.Request) {
+func (svr *Server) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	var newUser User
+	ctx := r.Context()
 
 	err := json.NewDecoder(r.Body).Decode(&newUser)
 	if err != nil {
 		http.Error(w, "400 Bad Request", http.StatusBadRequest)
 		return
 	}
+	plainTextPassword := []byte(newUser.Password)
+	hashedPassword, err := bcrypt.GenerateFromPassword(plainTextPassword, bcrypt.DefaultCost)
+	if err != nil {
+		fmt.Printf("error: %s", err)
+		http.Error(w, "Bad Request", http.StatusInternalServerError)
+		return
+	}
+	// INFO: Completely  unnecessary btw
+	(&newUser).Password = string(hashedPassword)
 
 	query :=
 		`
-			INSERT INTO users (username, email)
-			VALUES ($1,$2)
+			INSERT INTO users (username, email, password)
+			VALUES ($1,$2, $3)
 			RETURNING id, created_at
 		`
-	err = svr.DB.QueryRow(query, newUser.Username, newUser.Email).Scan(&newUser.ID, &newUser.CreatedAt)
+	err = svr.DB.QueryRowContext(ctx, query, newUser.Username, newUser.Email, newUser.Password).Scan(&newUser.ID, &newUser.CreatedAt)
 	if err != nil {
 		http.Error(w, "400 Bad Request", http.StatusBadRequest)
+		fmt.Printf("error: %s", err)
 		return
 	}
 
@@ -57,18 +81,16 @@ func (svr *Server) createUserHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Fprintf(w, "account successfully created. thanks for working with us, %s\n", newUser.Username)
 
-	arr = append(arr, newUser)
 }
 
-func (srv *Server) showUsers(w http.ResponseWriter, r *http.Request) {
+func (srv *Server) ShowUsers(w http.ResponseWriter, r *http.Request) {
 
 	var user User
 	resp := mux.Vars(r)
 	userName := resp["email"]
 
-	
-	query := 
-	`
+	query :=
+		`
 		SELECT * FROM users
 		WHERE email=$1
 	`
@@ -80,5 +102,5 @@ func (srv *Server) showUsers(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-type", "application-json")
 	json.NewEncoder(w).Encode(&user)
-	
+
 }
