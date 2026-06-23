@@ -13,6 +13,7 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// TODO: switch to sqlx
 func Connect() *sql.DB {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
