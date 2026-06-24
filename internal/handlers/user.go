@@ -4,23 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 
 	"database/sql"
 	"github.com/gorilla/mux"
 	"golang.org/x/crypto/bcrypt"
-	// "github.com/Jxt-Eli/webdev/cmd/api"
+
+	"github.com/Jxt-Eli/webdev/internal/models"
 )
 
-// INFO: public struct
-type User struct {
-	ID        string    `json:"id"`
-	Username  string    `json:"username"`
-	Email     string    `json:"email"`
-	CreatedAt time.Time `json:"created_at"`
-
-	Password string `json:"-"`
-}
 type Server struct {
 	DB *sql.DB
 }
@@ -45,7 +36,7 @@ func (srv *Server) DelUserHandler(w http.ResponseWriter, r *http.Request) {
 
 func (svr *Server) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 
-	var newUser User
+	var newUser models.User
 	ctx := r.Context()
 
 	err := json.NewDecoder(r.Body).Decode(&newUser)
@@ -60,7 +51,7 @@ func (svr *Server) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad Request", http.StatusInternalServerError)
 		return
 	}
-	// INFO: Completely  unnecessary btw
+	// TODO: Remove manual dereference
 	(&newUser).Password = string(hashedPassword)
 
 	query :=
@@ -69,6 +60,7 @@ func (svr *Server) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 			VALUES ($1,$2, $3)
 			RETURNING id, created_at
 		`
+// TODO: switch to sqlx
 	err = svr.DB.QueryRowContext(ctx, query, newUser.Username, newUser.Email, newUser.Password).Scan(&newUser.ID, &newUser.CreatedAt)
 	if err != nil {
 		http.Error(w, "400 Bad Request", http.StatusBadRequest)
@@ -85,7 +77,7 @@ func (svr *Server) CreateUserHandler(w http.ResponseWriter, r *http.Request) {
 
 func (srv *Server) ShowUsers(w http.ResponseWriter, r *http.Request) {
 
-	var user User
+	var user models.User
 	resp := mux.Vars(r)
 	userName := resp["email"]
 
@@ -94,6 +86,7 @@ func (srv *Server) ShowUsers(w http.ResponseWriter, r *http.Request) {
 		SELECT * FROM users
 		WHERE email=$1
 	`
+// TODO: switch to sqlx
 	err := srv.DB.QueryRow(query, userName).Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt)
 	if err != nil {
 		http.Error(w, "400 Bad Request", http.StatusBadRequest)
