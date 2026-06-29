@@ -10,7 +10,7 @@ import (
 
 	// "google.golang.org/genproto/googleapis/spanner/admin/database/v1"
 
-	"github.com/Jxt-Eli/webdev/db"
+	"github.com/Jxt-Eli/webdev/internal/db"
 	"github.com/Jxt-Eli/webdev/internal/handlers"
 	"github.com/Jxt-Eli/webdev/internal/middleware"
 )
